@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_deep">#050508</color>
+    <color name="bg_lift">#0B0B12</color>
+    <color name="ink_bright">#F2F2F7</color>
+    <color name="ink_muted">#8A8A95</color>
+    <color name="accent_cyan">#22D3EE</color>
+    <color name="accent_cyan_dim">#0E7490</color>
+    <color name="glass_fill">#14FFFFFF</color>
+    <color name="glass_border">#33FFFFFF</color>
+</resources>
