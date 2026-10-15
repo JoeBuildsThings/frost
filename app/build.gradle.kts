@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId = "com.joebuildsthings.frost"
-        minSdk = 21
+        minSdk = 23
         targetSdk = 34
         versionCode = 2
         versionName = "0.2.0"
