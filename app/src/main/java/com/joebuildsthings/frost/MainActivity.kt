@@ -17,9 +17,10 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val scrimForOldDevices = Color.argb(0x66, 0x00, 0x00, 0x00)
         enableEdgeToEdge(
-            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT),
-            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, Color.TRANSPARENT)
+            statusBarStyle = SystemBarStyle.light(Color.TRANSPARENT, scrimForOldDevices),
+            navigationBarStyle = SystemBarStyle.light(Color.TRANSPARENT, scrimForOldDevices)
         )
         setContent {
             FrostTheme {
