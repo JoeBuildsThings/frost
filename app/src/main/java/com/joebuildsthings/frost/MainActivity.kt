@@ -9,7 +9,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import com.joebuildsthings.frost.ui.FrostApp
 import com.joebuildsthings.frost.ui.theme.FrostTheme
-import com.joebuildsthings.frost.ui.theme.GlassBackground
 
 class MainActivity : ComponentActivity() {
 
@@ -24,9 +23,7 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             FrostTheme {
-                GlassBackground {
-                    FrostApp(vm)
-                }
+                FrostApp(vm)
             }
         }
     }
