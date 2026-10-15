@@ -89,9 +89,9 @@ fun SettingsScreen(vm: FrostViewModel, bottomPad: Dp, onBack: () -> Unit) {
                         Modifier.horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Chip("Show all", vm.minSeconds == 0) { vm.setMinSeconds(0) }
-                        Chip("30 seconds", vm.minSeconds == 30) { vm.setMinSeconds(30) }
-                        Chip("60 seconds", vm.minSeconds == 60) { vm.setMinSeconds(60) }
+                        Chip("Show all", vm.minSeconds == 0) { vm.updateMinSeconds(0) }
+                        Chip("30 seconds", vm.minSeconds == 30) { vm.updateMinSeconds(30) }
+                        Chip("60 seconds", vm.minSeconds == 60) { vm.updateMinSeconds(60) }
                     }
                     Spacer(Modifier.height(2.dp))
                     GhostButton("Scan again", { vm.scan() }, Modifier.fillMaxWidth())

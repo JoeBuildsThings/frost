@@ -413,7 +413,7 @@ class FrostViewModel(app: Application) : AndroidViewModel(app) {
         persist()
     }
 
-    fun setMinSeconds(seconds: Int) {
+    fun updateMinSeconds(seconds: Int) {
         minSeconds = seconds
         persist()
         refilter()
