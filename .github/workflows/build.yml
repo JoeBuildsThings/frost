@@ -27,9 +27,22 @@ jobs:
       - name: Build debug APK
         run: gradle assembleDebug --no-daemon --stacktrace
 
-      - name: Upload APK
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
           name: frost-debug
           path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+      - name: Build release APK
+        id: release
+        continue-on-error: true
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Upload release APK
+        if: steps.release.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frost-release
+          path: app/build/outputs/apk/release/app-release.apk
           retention-days: 30

@@ -2,6 +2,7 @@ package com.joebuildsthings.frost
 
 import android.app.Application
 import android.content.ComponentName
+import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.compose.runtime.getValue
@@ -24,6 +25,7 @@ import com.joebuildsthings.frost.data.Playlist
 import com.joebuildsthings.frost.data.Track
 import com.joebuildsthings.frost.data.UserData
 import com.joebuildsthings.frost.data.UserStore
+import com.joebuildsthings.frost.playback.PlaybackPrefs
 import com.joebuildsthings.frost.playback.PlaybackService
 import java.util.UUID
 import java.util.concurrent.Executors
@@ -97,6 +99,8 @@ class FrostViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var sleepMinutes by mutableStateOf(0)
         private set
+    var keepPlaying by mutableStateOf(true)
+        private set
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
@@ -106,6 +110,8 @@ class FrostViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     init {
+        keepPlaying = app.getSharedPreferences(PlaybackPrefs.FILE, Context.MODE_PRIVATE)
+            .getBoolean(PlaybackPrefs.KEEP_PLAYING, true)
         viewModelScope.launch {
             val data = withContext(Dispatchers.IO) { store.load() }
             favorites = data.favorites
@@ -371,6 +377,15 @@ class FrostViewModel(app: Application) : AndroidViewModel(app) {
             sleepEndsAt = 0L
             sleepMinutes = 0
         }
+    }
+
+    fun updateKeepPlaying(enabled: Boolean) {
+        keepPlaying = enabled
+        getApplication<Application>()
+            .getSharedPreferences(PlaybackPrefs.FILE, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(PlaybackPrefs.KEEP_PLAYING, enabled)
+            .apply()
     }
 
     // ---------- favorites, playlists, settings ----------

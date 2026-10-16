@@ -26,8 +26,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -44,6 +46,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -70,15 +73,18 @@ import com.joebuildsthings.frost.ui.pages.PlaylistsPage
 import com.joebuildsthings.frost.ui.pages.SongsPage
 import com.joebuildsthings.frost.ui.theme.Accent
 import com.joebuildsthings.frost.ui.theme.AccentTint
+import com.joebuildsthings.frost.ui.theme.ArtPalette
 import com.joebuildsthings.frost.ui.theme.BarHazeStyle
 import com.joebuildsthings.frost.ui.theme.Ink
 import com.joebuildsthings.frost.ui.theme.InkMuted
+import com.joebuildsthings.frost.ui.theme.dynamicGlow
 import com.joebuildsthings.frost.ui.theme.glassEdge
-import com.joebuildsthings.frost.ui.theme.glowBackground
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeEffect
 import dev.chrisbanes.haze.hazeSource
 import dev.chrisbanes.haze.rememberHazeState
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private val AUDIO_PERMISSION: String =
     if (Build.VERSION.SDK_INT >= 33) {
@@ -138,6 +144,21 @@ fun FrostApp(vm: FrostViewModel) {
     val push: (Overlay) -> Unit = { stack.add(it) }
     val pop: () -> Unit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
 
+    val songsState = rememberLazyListState()
+    val albumsState = rememberLazyGridState()
+    val artistsState = rememberLazyListState()
+    val foldersState = rememberLazyListState()
+    val playlistsState = rememberLazyListState()
+
+    val currentAlbum = vm.current?.albumId ?: 0L
+    val glowColors by produceState<List<Color>?>(null, currentAlbum) {
+        value = if (currentAlbum > 0L) {
+            withContext(Dispatchers.IO) { ArtPalette.colorsFor(context, currentAlbum) }
+        } else {
+            null
+        }
+    }
+
     BackHandler(enabled = stack.isNotEmpty()) { pop() }
 
     val barsVisible = granted && top !is Overlay.NowPlaying && top !is Overlay.Search
@@ -148,7 +169,7 @@ fun FrostApp(vm: FrostViewModel) {
             Modifier
                 .fillMaxSize()
                 .hazeSource(state = hazeState)
-                .glowBackground()
+                .dynamicGlow(glowColors)
         ) {
             if (!granted) {
                 PermissionGate(
@@ -156,11 +177,14 @@ fun FrostApp(vm: FrostViewModel) {
                     onAllow = { audioLauncher.launch(AUDIO_PERMISSION) },
                     onSettings = { openAppSettings(context) }
                 )
+            } else if (top == null) {
+                Shell(
+                    vm, tab, bottomPad,
+                    songsState, albumsState, artistsState, foldersState, playlistsState,
+                    push
+                )
             } else {
-                Shell(vm, tab, bottomPad, push)
-                if (top != null) {
-                    OverlayHost(top, vm, bottomPad, push, pop)
-                }
+                OverlayHost(top, vm, bottomPad, glowColors, push, pop)
             }
         }
 
@@ -205,13 +229,17 @@ private fun PermissionGate(asked: Boolean, onAllow: () -> Unit, onSettings: () -
 }
 
 @Composable
-private fun Shell(vm: FrostViewModel, tab: Int, bottomPad: Dp, onPush: (Overlay) -> Unit) {
-    val songsState = rememberLazyListState()
-    val albumsState = rememberLazyGridState()
-    val artistsState = rememberLazyListState()
-    val foldersState = rememberLazyListState()
-    val playlistsState = rememberLazyListState()
-
+private fun Shell(
+    vm: FrostViewModel,
+    tab: Int,
+    bottomPad: Dp,
+    songsState: LazyListState,
+    albumsState: LazyGridState,
+    artistsState: LazyListState,
+    foldersState: LazyListState,
+    playlistsState: LazyListState,
+    onPush: (Overlay) -> Unit
+) {
     val subtitle = when (tab) {
         0 -> "${vm.tracks.size} songs on this phone"
         1 -> "${vm.albums.size} albums"
@@ -275,15 +303,16 @@ private fun OverlayHost(
     overlay: Overlay,
     vm: FrostViewModel,
     bottomPad: Dp,
+    glowColors: List<Color>?,
     onPush: (Overlay) -> Unit,
     onBack: () -> Unit
 ) {
-    Box(Modifier.fillMaxSize().glowBackground()) {
+    Box(Modifier.fillMaxSize()) {
         when (overlay) {
             is Overlay.Detail -> DetailScreen(overlay.source, vm, bottomPad, onBack)
             Overlay.Search -> SearchScreen(vm, bottomPad, onBack, onPush)
             Overlay.Settings -> SettingsScreen(vm, bottomPad, onBack)
-            Overlay.NowPlaying -> NowPlayingScreen(vm, onBack)
+            Overlay.NowPlaying -> NowPlayingScreen(vm, glowColors, onBack)
         }
     }
 }

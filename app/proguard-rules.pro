@@ -1,0 +1,8 @@
+-keep class com.joebuildsthings.frost.playback.PlaybackService { *; }
+-dontwarn com.google.errorprone.annotations.**
+-dontwarn org.checkerframework.**
+-dontwarn javax.annotation.**
+-dontwarn org.jspecify.annotations.**
+-dontwarn com.google.j2objc.annotations.**
+-dontwarn java.lang.ClassValue
+-dontwarn org.codehaus.mojo.animal_sniffer.**

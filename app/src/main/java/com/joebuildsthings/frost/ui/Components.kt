@@ -534,3 +534,22 @@ fun SleepChips(vm: FrostViewModel) {
         }
     }
 }
+
+@Composable
+fun ArtBackdrop(albumId: Long, requestPx: Int, modifier: Modifier) {
+    val context = LocalContext.current
+    val art by produceState<Bitmap?>(ArtCache.peek(albumId, requestPx), albumId, requestPx) {
+        if (value == null) {
+            value = withContext(Dispatchers.IO) { ArtCache.load(context, albumId, requestPx) }
+        }
+    }
+    val image = remember(art) { art?.asImageBitmap() }
+    if (image != null) {
+        Image(
+            bitmap = image,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier
+        )
+    }
+}

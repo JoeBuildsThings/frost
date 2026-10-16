@@ -56,17 +56,25 @@ import com.joebuildsthings.frost.ui.theme.AccentTint
 import com.joebuildsthings.frost.ui.theme.GlassShadow
 import com.joebuildsthings.frost.ui.theme.Ink
 import com.joebuildsthings.frost.ui.theme.InkMuted
+import com.joebuildsthings.frost.ui.theme.PanelHazeStyle
+import com.joebuildsthings.frost.ui.theme.dynamicGlow
+import com.joebuildsthings.frost.ui.theme.glassEdge
 import com.joebuildsthings.frost.ui.theme.glassFlat
+import dev.chrisbanes.haze.hazeEffect
+import dev.chrisbanes.haze.hazeSource
+import dev.chrisbanes.haze.rememberHazeState
 import kotlinx.coroutines.delay
 
 @Composable
-fun NowPlayingScreen(vm: FrostViewModel, onBack: () -> Unit) {
+fun NowPlayingScreen(vm: FrostViewModel, glowColors: List<Color>?, onBack: () -> Unit) {
     val track = vm.current
     var showQueue by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
     var position by remember { mutableLongStateOf(0L) }
     var scrubbing by remember { mutableStateOf(false) }
     var scrub by remember { mutableFloatStateOf(0f) }
+    val hazeState = rememberHazeState()
+    val panelShape = RoundedCornerShape(32.dp)
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -82,141 +90,167 @@ fun NowPlayingScreen(vm: FrostViewModel, onBack: () -> Unit) {
         else -> (position.toFloat() / duration).coerceIn(0f, 1f)
     }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 8.dp)
-    ) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconCircle(Icons.Rounded.KeyboardArrowDown, "Close player", onBack)
-            Text("Now playing", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            IconCircle(FrostIcons.QueueMusic, "Queue", { showQueue = !showQueue }, active = showQueue)
-        }
-        Spacer(Modifier.height(16.dp))
-
-        BoxWithConstraints(
+    Box(Modifier.fillMaxSize()) {
+        Box(
             Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentAlignment = Alignment.Center
+                .fillMaxSize()
+                .hazeSource(state = hazeState)
+                .dynamicGlow(glowColors)
         ) {
-            if (showQueue) {
-                QueueList(vm)
-            } else if (track != null) {
-                val side = minOf(maxWidth, maxHeight)
-                Art(
-                    track.albumId,
-                    720,
-                    Modifier
-                        .size(side)
-                        .shadow(18.dp, RoundedCornerShape(32.dp), ambientColor = GlassShadow, spotColor = GlassShadow),
-                    32.dp,
-                    72.dp
-                )
-            } else {
-                Text("Nothing is playing yet.", color = InkMuted, fontSize = 15.sp)
-            }
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text(
-            track?.title ?: "Nothing playing",
-            color = Ink,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            track?.artist ?: "",
-            color = InkMuted,
-            fontSize = 15.sp,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-
-        Spacer(Modifier.height(8.dp))
-        Slider(
-            value = fraction,
-            onValueChange = {
-                scrubbing = true
-                scrub = it
-            },
-            onValueChangeFinished = {
-                vm.seekTo((scrub * duration).toLong())
-                position = (scrub * duration).toLong()
-                scrubbing = false
-            },
-            colors = SliderDefaults.colors(
-                thumbColor = Accent,
-                activeTrackColor = Accent,
-                inactiveTrackColor = AccentTint
-            )
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(
-                formatDuration(if (scrubbing) (scrub * duration).toLong() else position),
-                color = InkMuted,
-                fontSize = 12.sp
-            )
-            Text(formatDuration(duration), color = InkMuted, fontSize = 12.sp)
-        }
-
-        Spacer(Modifier.height(12.dp))
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconCircle(FrostIcons.Shuffle, "Shuffle", { vm.toggleShuffle() }, active = vm.shuffle)
-            IconButton(onClick = { vm.previous() }, modifier = Modifier.size(56.dp)) {
-                Icon(FrostIcons.SkipPrevious, contentDescription = "Previous song", tint = Ink, modifier = Modifier.size(34.dp))
+            if (track != null) {
+                ArtBackdrop(track.albumId, 720, Modifier.fillMaxSize())
             }
             Box(
                 Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(Accent)
-                    .clickable { vm.togglePlay() },
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    if (vm.isPlaying) FrostIcons.Pause else FrostIcons.Play,
-                    contentDescription = if (vm.isPlaying) "Pause" else "Play",
-                    tint = Color.White,
-                    modifier = Modifier.size(38.dp)
-                )
-            }
-            IconButton(onClick = { vm.next() }, modifier = Modifier.size(56.dp)) {
-                Icon(FrostIcons.SkipNext, contentDescription = "Next song", tint = Ink, modifier = Modifier.size(34.dp))
-            }
-            IconCircle(
-                if (vm.repeatMode == Player.REPEAT_MODE_ONE) FrostIcons.RepeatOne else FrostIcons.Repeat,
-                "Repeat",
-                { vm.cycleRepeat() },
-                active = vm.repeatMode != Player.REPEAT_MODE_OFF
+                    .fillMaxSize()
+                    .background(Color.White.copy(alpha = 0.38f))
             )
         }
 
-        Spacer(Modifier.height(18.dp))
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            val favorite = track != null && track.id in vm.favorites
-            GhostButton(
-                if (favorite) "Favorited" else "Favorite",
-                { if (track != null) vm.toggleFavorite(track.id) },
-                Modifier.weight(1f),
-                if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
-            )
-            Spacer(Modifier.width(10.dp))
-            SleepButton(vm, Modifier.weight(1f)) { showSleep = true }
+        Column(
+            Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp, vertical = 8.dp)
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                IconCircle(Icons.Rounded.KeyboardArrowDown, "Close player", onBack)
+                Text("Now playing", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                IconCircle(FrostIcons.QueueMusic, "Queue", { showQueue = !showQueue }, active = showQueue)
+            }
+            Spacer(Modifier.height(12.dp))
+
+            BoxWithConstraints(
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                if (showQueue) {
+                    QueueList(vm)
+                } else if (track != null) {
+                    val side = minOf(maxWidth, maxHeight)
+                    Art(
+                        track.albumId,
+                        720,
+                        Modifier
+                            .size(side)
+                            .shadow(18.dp, RoundedCornerShape(32.dp), ambientColor = GlassShadow, spotColor = GlassShadow),
+                        32.dp,
+                        72.dp
+                    )
+                } else {
+                    Text("Nothing is playing yet.", color = InkMuted, fontSize = 15.sp)
+                }
+            }
+
+            Spacer(Modifier.height(14.dp))
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .clip(panelShape)
+                    .hazeEffect(state = hazeState, style = PanelHazeStyle)
+                    .glassEdge(panelShape)
+                    .padding(horizontal = 20.dp, vertical = 16.dp)
+            ) {
+                Text(
+                    track?.title ?: "Nothing playing",
+                    color = Ink,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    track?.artist ?: "",
+                    color = InkMuted,
+                    fontSize = 14.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(Modifier.height(4.dp))
+                Slider(
+                    value = fraction,
+                    onValueChange = {
+                        scrubbing = true
+                        scrub = it
+                    },
+                    onValueChangeFinished = {
+                        vm.seekTo((scrub * duration).toLong())
+                        position = (scrub * duration).toLong()
+                        scrubbing = false
+                    },
+                    colors = SliderDefaults.colors(
+                        thumbColor = Accent,
+                        activeTrackColor = Accent,
+                        inactiveTrackColor = AccentTint
+                    )
+                )
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        formatDuration(if (scrubbing) (scrub * duration).toLong() else position),
+                        color = InkMuted,
+                        fontSize = 12.sp
+                    )
+                    Text(formatDuration(duration), color = InkMuted, fontSize = 12.sp)
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    IconCircle(FrostIcons.Shuffle, "Shuffle", { vm.toggleShuffle() }, active = vm.shuffle)
+                    IconButton(onClick = { vm.previous() }, modifier = Modifier.size(56.dp)) {
+                        Icon(FrostIcons.SkipPrevious, contentDescription = "Previous song", tint = Ink, modifier = Modifier.size(34.dp))
+                    }
+                    Box(
+                        Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(Accent)
+                            .clickable { vm.togglePlay() },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            if (vm.isPlaying) FrostIcons.Pause else FrostIcons.Play,
+                            contentDescription = if (vm.isPlaying) "Pause" else "Play",
+                            tint = Color.White,
+                            modifier = Modifier.size(38.dp)
+                        )
+                    }
+                    IconButton(onClick = { vm.next() }, modifier = Modifier.size(56.dp)) {
+                        Icon(FrostIcons.SkipNext, contentDescription = "Next song", tint = Ink, modifier = Modifier.size(34.dp))
+                    }
+                    IconCircle(
+                        if (vm.repeatMode == Player.REPEAT_MODE_ONE) FrostIcons.RepeatOne else FrostIcons.Repeat,
+                        "Repeat",
+                        { vm.cycleRepeat() },
+                        active = vm.repeatMode != Player.REPEAT_MODE_OFF
+                    )
+                }
+
+                Spacer(Modifier.height(14.dp))
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    val favorite = track != null && track.id in vm.favorites
+                    GhostButton(
+                        if (favorite) "Favorited" else "Favorite",
+                        { if (track != null) vm.toggleFavorite(track.id) },
+                        Modifier.weight(1f),
+                        if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    SleepButton(vm, Modifier.weight(1f)) { showSleep = true }
+                }
+            }
         }
-        Spacer(Modifier.height(8.dp))
     }
 
     if (showSleep) {
