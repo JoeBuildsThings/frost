@@ -2,13 +2,22 @@ package com.joebuildsthings.frost.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BgDeep = Color(0xFF050508)
-val BgLift = Color(0xFF0B0B12)
-val InkBright = Color(0xFFF2F2F7)
-val InkMuted = Color(0xFF8A8A95)
-val AccentCyan = Color(0xFF22D3EE)
-val AccentCyanDim = Color(0xFF0E7490)
-val GlassFill = Color(0x14FFFFFF)
-val GlassFillStrong = Color(0x22FFFFFF)
-val GlassBorder = Color(0x33FFFFFF)
-val GlassBorderSoft = Color(0x1AFFFFFF)
+val BgTop = Color(0xFFEFF5FF)
+val BgBottom = Color(0xFFFCFAF6)
+val BlobBlue = Color(0xFFA9C9FF)
+val BlobMint = Color(0xFFA9E7D3)
+val BlobPeach = Color(0xFFFFCDAE)
+val BlobSky = Color(0xFFBFE4FF)
+
+val Ink = Color(0xFF0E1726)
+val InkMuted = Color(0xFF566376)
+
+val Accent = Color(0xFF1F6BFF)
+val AccentTint = Color(0x1F1F6BFF)
+
+val GlassTop = Color(0xC7FFFFFF)
+val GlassBottom = Color(0x8FFFFFFF)
+val GlassFlat = Color(0x99FFFFFF)
+val GlassEdgeStrong = Color(0xFFFFFFFF)
+val GlassEdgeFade = Color(0x66FFFFFF)
+val GlassShadow = Color(0x331E3A66)

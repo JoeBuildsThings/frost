@@ -1,20 +1,21 @@
 package com.joebuildsthings.frost.ui.theme
 
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
-private val FrostScheme = darkColorScheme(
-    primary = AccentCyan,
-    onPrimary = BgDeep,
-    background = BgDeep,
-    onBackground = InkBright,
-    surface = BgLift,
-    onSurface = InkBright,
-    outline = GlassBorderSoft,
+private val FrostColors = lightColorScheme(
+    primary = Accent,
+    onPrimary = Color.White,
+    background = BgTop,
+    onBackground = Ink,
+    surface = Color.White,
+    onSurface = Ink,
+    onSurfaceVariant = InkMuted
 )
 
 @Composable
 fun FrostTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = FrostScheme, content = content)
+    MaterialTheme(colorScheme = FrostColors, content = content)
 }

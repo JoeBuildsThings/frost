@@ -1,0 +1,300 @@
+package com.joebuildsthings.frost.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Favorite
+import androidx.compose.material.icons.rounded.FavoriteBorder
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.media3.common.Player
+import com.joebuildsthings.frost.FrostViewModel
+import com.joebuildsthings.frost.data.Track
+import com.joebuildsthings.frost.ui.theme.Accent
+import com.joebuildsthings.frost.ui.theme.AccentTint
+import com.joebuildsthings.frost.ui.theme.GlassShadow
+import com.joebuildsthings.frost.ui.theme.Ink
+import com.joebuildsthings.frost.ui.theme.InkMuted
+import com.joebuildsthings.frost.ui.theme.glassFlat
+import kotlinx.coroutines.delay
+
+@Composable
+fun NowPlayingScreen(vm: FrostViewModel, onBack: () -> Unit) {
+    val track = vm.current
+    var showQueue by remember { mutableStateOf(false) }
+    var showSleep by remember { mutableStateOf(false) }
+    var position by remember { mutableLongStateOf(0L) }
+    var scrubbing by remember { mutableStateOf(false) }
+    var scrub by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            if (!scrubbing) position = vm.positionMs()
+            delay(if (vm.isPlaying) 300L else 900L)
+        }
+    }
+
+    val duration = vm.durationMs().takeIf { it > 0L } ?: (track?.durationMs ?: 0L)
+    val fraction = when {
+        duration <= 0L -> 0f
+        scrubbing -> scrub
+        else -> (position.toFloat() / duration).coerceIn(0f, 1f)
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+            .navigationBarsPadding()
+            .padding(horizontal = 24.dp, vertical = 8.dp)
+    ) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconCircle(Icons.Rounded.KeyboardArrowDown, "Close player", onBack)
+            Text("Now playing", color = InkMuted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            IconCircle(FrostIcons.QueueMusic, "Queue", { showQueue = !showQueue }, active = showQueue)
+        }
+        Spacer(Modifier.height(16.dp))
+
+        BoxWithConstraints(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (showQueue) {
+                QueueList(vm)
+            } else if (track != null) {
+                val side = minOf(maxWidth, maxHeight)
+                Art(
+                    track.albumId,
+                    720,
+                    Modifier
+                        .size(side)
+                        .shadow(18.dp, RoundedCornerShape(32.dp), ambientColor = GlassShadow, spotColor = GlassShadow),
+                    32.dp,
+                    72.dp
+                )
+            } else {
+                Text("Nothing is playing yet.", color = InkMuted, fontSize = 15.sp)
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Text(
+            track?.title ?: "Nothing playing",
+            color = Ink,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+        Text(
+            track?.artist ?: "",
+            color = InkMuted,
+            fontSize = 15.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        Spacer(Modifier.height(8.dp))
+        Slider(
+            value = fraction,
+            onValueChange = {
+                scrubbing = true
+                scrub = it
+            },
+            onValueChangeFinished = {
+                vm.seekTo((scrub * duration).toLong())
+                position = (scrub * duration).toLong()
+                scrubbing = false
+            },
+            colors = SliderDefaults.colors(
+                thumbColor = Accent,
+                activeTrackColor = Accent,
+                inactiveTrackColor = AccentTint
+            )
+        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Text(
+                formatDuration(if (scrubbing) (scrub * duration).toLong() else position),
+                color = InkMuted,
+                fontSize = 12.sp
+            )
+            Text(formatDuration(duration), color = InkMuted, fontSize = 12.sp)
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            IconCircle(FrostIcons.Shuffle, "Shuffle", { vm.toggleShuffle() }, active = vm.shuffle)
+            IconButton(onClick = { vm.previous() }, modifier = Modifier.size(56.dp)) {
+                Icon(FrostIcons.SkipPrevious, contentDescription = "Previous song", tint = Ink, modifier = Modifier.size(34.dp))
+            }
+            Box(
+                Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(Accent)
+                    .clickable { vm.togglePlay() },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    if (vm.isPlaying) FrostIcons.Pause else FrostIcons.Play,
+                    contentDescription = if (vm.isPlaying) "Pause" else "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(38.dp)
+                )
+            }
+            IconButton(onClick = { vm.next() }, modifier = Modifier.size(56.dp)) {
+                Icon(FrostIcons.SkipNext, contentDescription = "Next song", tint = Ink, modifier = Modifier.size(34.dp))
+            }
+            IconCircle(
+                if (vm.repeatMode == Player.REPEAT_MODE_ONE) FrostIcons.RepeatOne else FrostIcons.Repeat,
+                "Repeat",
+                { vm.cycleRepeat() },
+                active = vm.repeatMode != Player.REPEAT_MODE_OFF
+            )
+        }
+
+        Spacer(Modifier.height(18.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            val favorite = track != null && track.id in vm.favorites
+            GhostButton(
+                if (favorite) "Favorited" else "Favorite",
+                { if (track != null) vm.toggleFavorite(track.id) },
+                Modifier.weight(1f),
+                if (favorite) Icons.Rounded.Favorite else Icons.Rounded.FavoriteBorder
+            )
+            Spacer(Modifier.width(10.dp))
+            SleepButton(vm, Modifier.weight(1f)) { showSleep = true }
+        }
+        Spacer(Modifier.height(8.dp))
+    }
+
+    if (showSleep) {
+        GlassDialog(onDismiss = { showSleep = false }) {
+            DialogTitle("Sleep timer")
+            Spacer(Modifier.height(4.dp))
+            Text("Music pauses when time is up.", color = InkMuted, fontSize = 14.sp)
+            Spacer(Modifier.height(14.dp))
+            SleepChips(vm)
+            Spacer(Modifier.height(16.dp))
+            PrimaryButton("Done", { showSleep = false })
+        }
+    }
+}
+
+@Composable
+private fun SleepButton(vm: FrostViewModel, modifier: Modifier, onClick: () -> Unit) {
+    val end = vm.sleepEndsAt
+    if (end == 0L) {
+        GhostButton("Sleep timer", onClick, modifier, FrostIcons.Timer)
+    } else {
+        val now by produceState(System.currentTimeMillis(), end) {
+            while (true) {
+                value = System.currentTimeMillis()
+                delay(1000L)
+            }
+        }
+        val left = ((end - now) / 1000L).coerceAtLeast(0L)
+        GhostButton("%d:%02d left".format(left / 60L, left % 60L), onClick, modifier, FrostIcons.Timer)
+    }
+}
+
+@Composable
+private fun QueueList(vm: FrostViewModel) {
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = (vm.queueIndex - 2).coerceAtLeast(0))
+    if (vm.queue.isEmpty()) {
+        Text("The queue is empty.", color = InkMuted, fontSize = 15.sp)
+    } else {
+        LazyColumn(
+            state = state,
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            itemsIndexed(vm.queue) { index, t ->
+                QueueRow(t, active = index == vm.queueIndex) { vm.jumpTo(index) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QueueRow(track: Track, active: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .glassFlat(RoundedCornerShape(16.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Art(track.albumId, 96, Modifier.size(40.dp), 12.dp, 18.dp)
+        Spacer(Modifier.width(12.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                track.title,
+                color = if (active) Accent else Ink,
+                fontSize = 14.sp,
+                fontWeight = if (active) FontWeight.SemiBold else FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                track.artist,
+                color = InkMuted,
+                fontSize = 12.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
