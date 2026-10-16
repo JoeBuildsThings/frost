@@ -59,7 +59,7 @@ import com.joebuildsthings.frost.ui.theme.InkMuted
 import com.joebuildsthings.frost.ui.theme.glassFlat
 
 @Composable
-fun SongsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp) {
+fun SongsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, topPad: Dp) {
     val tracks = vm.tracks
     var menuTrack by remember { mutableStateOf<Track?>(null) }
 
@@ -68,7 +68,7 @@ fun SongsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp) {
     } else {
         LazyColumn(
             state = state,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = bottomPad),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPad, bottom = bottomPad),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             item(key = "actions") {

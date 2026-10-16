@@ -1,6 +1,14 @@
 package com.joebuildsthings.frost.ui
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -75,6 +83,11 @@ fun NowPlayingScreen(vm: FrostViewModel, glowColors: List<Color>?, onBack: () ->
     var scrub by remember { mutableFloatStateOf(0f) }
     val hazeState = rememberHazeState()
     val panelShape = RoundedCornerShape(32.dp)
+    val artScale by animateFloatAsState(
+        targetValue = if (vm.isPlaying) 1f else 0.92f,
+        animationSpec = spring(dampingRatio = 0.6f, stiffness = Spring.StiffnessLow),
+        label = "art"
+    )
 
     LaunchedEffect(Unit) {
         while (true) {
@@ -141,6 +154,10 @@ fun NowPlayingScreen(vm: FrostViewModel, glowColors: List<Color>?, onBack: () ->
                         720,
                         Modifier
                             .size(side)
+                            .graphicsLayer {
+                                scaleX = artScale
+                                scaleY = artScale
+                            }
                             .shadow(18.dp, RoundedCornerShape(32.dp), ambientColor = GlassShadow, spotColor = GlassShadow),
                         32.dp,
                         72.dp
@@ -211,20 +228,24 @@ fun NowPlayingScreen(vm: FrostViewModel, glowColors: List<Color>?, onBack: () ->
                     IconButton(onClick = { vm.previous() }, modifier = Modifier.size(56.dp)) {
                         Icon(FrostIcons.SkipPrevious, contentDescription = "Previous song", tint = Ink, modifier = Modifier.size(34.dp))
                     }
+                    val playSource = remember { MutableInteractionSource() }
                     Box(
                         Modifier
+                            .pressScale(playSource)
                             .size(72.dp)
                             .clip(CircleShape)
                             .background(Accent)
-                            .clickable { vm.togglePlay() },
+                            .clickable(interactionSource = playSource, indication = LocalIndication.current) { vm.togglePlay() },
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            if (vm.isPlaying) FrostIcons.Pause else FrostIcons.Play,
-                            contentDescription = if (vm.isPlaying) "Pause" else "Play",
-                            tint = Color.White,
-                            modifier = Modifier.size(38.dp)
-                        )
+                        Crossfade(targetState = vm.isPlaying, animationSpec = tween(180), label = "playpause") { playing ->
+                            Icon(
+                                if (playing) FrostIcons.Pause else FrostIcons.Play,
+                                contentDescription = if (playing) "Pause" else "Play",
+                                tint = Color.White,
+                                modifier = Modifier.size(38.dp)
+                            )
+                        }
                     }
                     IconButton(onClick = { vm.next() }, modifier = Modifier.size(56.dp)) {
                         Icon(FrostIcons.SkipNext, contentDescription = "Next song", tint = Ink, modifier = Modifier.size(34.dp))

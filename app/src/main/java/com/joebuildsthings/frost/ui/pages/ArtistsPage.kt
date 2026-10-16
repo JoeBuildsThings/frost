@@ -59,14 +59,14 @@ import com.joebuildsthings.frost.ui.theme.InkMuted
 import com.joebuildsthings.frost.ui.theme.glassFlat
 
 @Composable
-fun ArtistsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, onOpen: (Overlay) -> Unit) {
+fun ArtistsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, topPad: Dp, onOpen: (Overlay) -> Unit) {
     val artists = vm.artists
     if (artists.isEmpty()) {
         EmptyNote("No artists yet", "Artists appear once Frost finds songs on this phone.")
     } else {
         LazyColumn(
             state = state,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = bottomPad),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPad, bottom = bottomPad),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(artists, key = { it.name }) { artist ->

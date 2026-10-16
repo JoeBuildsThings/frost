@@ -9,6 +9,21 @@ import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -54,6 +69,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -106,6 +122,14 @@ private fun openAppSettings(context: Context) {
 
 private val TabLabels = listOf("Songs", "Albums", "Artists", "Folders", "Playlists")
 
+private fun subtitleFor(vm: FrostViewModel, tab: Int): String = when (tab) {
+    0 -> "${vm.tracks.size} songs on this phone"
+    1 -> "${vm.albums.size} albums"
+    2 -> "${vm.artists.size} artists"
+    3 -> "${vm.folders.size} folders"
+    else -> "${vm.playlists.size} playlists"
+}
+
 @Composable
 fun FrostApp(vm: FrostViewModel) {
     val context = LocalContext.current
@@ -138,11 +162,21 @@ fun FrostApp(vm: FrostViewModel) {
     val density = LocalDensity.current
     val stack = remember { mutableStateListOf<Overlay>() }
     var tab by rememberSaveable { mutableIntStateOf(0) }
+    var forward by remember { mutableStateOf(true) }
     var barsHeight by remember { mutableStateOf(0.dp) }
+    var headerHeight by remember { mutableStateOf(0.dp) }
     val navBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     val top = stack.lastOrNull()
-    val push: (Overlay) -> Unit = { stack.add(it) }
-    val pop: () -> Unit = { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
+    val push: (Overlay) -> Unit = {
+        forward = true
+        stack.add(it)
+    }
+    val pop: () -> Unit = {
+        if (stack.isNotEmpty()) {
+            forward = false
+            stack.removeAt(stack.lastIndex)
+        }
+    }
 
     val songsState = rememberLazyListState()
     val albumsState = rememberLazyGridState()
@@ -162,7 +196,9 @@ fun FrostApp(vm: FrostViewModel) {
     BackHandler(enabled = stack.isNotEmpty()) { pop() }
 
     val barsVisible = granted && top !is Overlay.NowPlaying && top !is Overlay.Search
+    val headerShown = granted && top == null
     val bottomPad = if (barsVisible) barsHeight + 12.dp else navBottom + 16.dp
+    val topPad = if (headerShown) headerHeight + 8.dp else 0.dp
 
     Box(Modifier.fillMaxSize()) {
         Box(
@@ -177,15 +213,53 @@ fun FrostApp(vm: FrostViewModel) {
                     onAllow = { audioLauncher.launch(AUDIO_PERMISSION) },
                     onSettings = { openAppSettings(context) }
                 )
-            } else if (top == null) {
-                Shell(
-                    vm, tab, bottomPad,
-                    songsState, albumsState, artistsState, foldersState, playlistsState,
-                    push
-                )
             } else {
-                OverlayHost(top, vm, bottomPad, glowColors, push, pop)
+                AnimatedContent(
+                    targetState = top,
+                    transitionSpec = {
+                        val sheet = targetState is Overlay.NowPlaying || initialState is Overlay.NowPlaying
+                        if (sheet && forward) {
+                            (slideInVertically(tween(380, easing = FastOutSlowInEasing)) { it / 3 } +
+                                fadeIn(tween(280))) togetherWith fadeOut(tween(200))
+                        } else if (sheet) {
+                            (fadeIn(tween(240)) togetherWith
+                                (slideOutVertically(tween(320, easing = FastOutSlowInEasing)) { it / 3 } +
+                                    fadeOut(tween(240)))).apply { targetContentZIndex = -1f }
+                        } else if (forward) {
+                            (slideInHorizontally(tween(320, easing = FastOutSlowInEasing)) { it / 6 } +
+                                fadeIn(tween(260))) togetherWith fadeOut(tween(180))
+                        } else {
+                            (fadeIn(tween(240)) togetherWith
+                                (slideOutHorizontally(tween(300, easing = FastOutSlowInEasing)) { it / 6 } +
+                                    fadeOut(tween(200)))).apply { targetContentZIndex = -1f }
+                        }
+                    },
+                    label = "screens"
+                ) { target ->
+                    if (target == null) {
+                        Shell(
+                            vm, tab, bottomPad, topPad,
+                            songsState, albumsState, artistsState, foldersState, playlistsState,
+                            push
+                        )
+                    } else {
+                        OverlayHost(target, vm, bottomPad, glowColors, push, pop)
+                    }
+                }
             }
+        }
+
+        if (headerShown) {
+            GlassHeader(
+                title = TabLabels[tab],
+                subtitle = if (vm.scanned) subtitleFor(vm, tab) else "Your music, no strings.",
+                hazeState = hazeState,
+                onSearch = { push(Overlay.Search) },
+                onSettings = { push(Overlay.Settings) },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .onSizeChanged { headerHeight = with(density) { it.height.toDp() } }
+            )
         }
 
         if (barsVisible) {
@@ -194,8 +268,14 @@ fun FrostApp(vm: FrostViewModel) {
                     .align(Alignment.BottomCenter)
                     .onSizeChanged { barsHeight = with(density) { it.height.toDp() } }
             ) {
-                MiniPlayer(vm, hazeState, padNav = top != null) {
-                    if (top !is Overlay.NowPlaying) push(Overlay.NowPlaying)
+                AnimatedVisibility(
+                    visible = vm.current != null,
+                    enter = slideInVertically(tween(320)) { it } + fadeIn(tween(260)),
+                    exit = slideOutVertically(tween(260)) { it } + fadeOut(tween(200))
+                ) {
+                    MiniPlayer(vm, hazeState, padNav = top != null) {
+                        if (top !is Overlay.NowPlaying) push(Overlay.NowPlaying)
+                    }
                 }
                 if (top == null) {
                     TabBar(tab, hazeState) { tab = it }
@@ -233,6 +313,7 @@ private fun Shell(
     vm: FrostViewModel,
     tab: Int,
     bottomPad: Dp,
+    topPad: Dp,
     songsState: LazyListState,
     albumsState: LazyGridState,
     artistsState: LazyListState,
@@ -240,41 +321,50 @@ private fun Shell(
     playlistsState: LazyListState,
     onPush: (Overlay) -> Unit
 ) {
-    val subtitle = when (tab) {
-        0 -> "${vm.tracks.size} songs on this phone"
-        1 -> "${vm.albums.size} albums"
-        2 -> "${vm.artists.size} artists"
-        3 -> "${vm.folders.size} folders"
-        else -> "${vm.playlists.size} playlists"
-    }
-
-    Column(Modifier.fillMaxSize()) {
-        Header(
-            TabLabels[tab],
-            if (vm.scanned) subtitle else "Your music, no strings.",
-            { onPush(Overlay.Search) },
-            { onPush(Overlay.Settings) }
-        )
-        Box(Modifier.weight(1f).fillMaxWidth()) {
-            if (!vm.scanned) {
-                StateCard(
-                    modifier = Modifier.fillMaxSize(),
-                    icon = FrostIcons.MusicNote,
-                    title = "Scanning your library",
-                    body = "Looking for songs on this phone."
-                ) {
-                    CircularProgressIndicator(color = Accent, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
-                }
-            } else {
-                when (tab) {
-                    0 -> SongsPage(vm, songsState, bottomPad)
-                    1 -> AlbumsPage(vm, albumsState, bottomPad, onPush)
-                    2 -> ArtistsPage(vm, artistsState, bottomPad, onPush)
-                    3 -> FoldersPage(vm, foldersState, bottomPad, onPush)
-                    else -> PlaylistsPage(vm, playlistsState, bottomPad, onPush)
+    Box(Modifier.fillMaxSize()) {
+        if (!vm.scanned) {
+            StateCard(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(top = topPad),
+                icon = FrostIcons.MusicNote,
+                title = "Scanning your library",
+                body = "Looking for songs on this phone."
+            ) {
+                CircularProgressIndicator(color = Accent, strokeWidth = 3.dp, modifier = Modifier.size(28.dp))
+            }
+        } else {
+            Crossfade(targetState = tab, animationSpec = tween(220), label = "tabs") { t ->
+                when (t) {
+                    0 -> SongsPage(vm, songsState, bottomPad, topPad)
+                    1 -> AlbumsPage(vm, albumsState, bottomPad, topPad, onPush)
+                    2 -> ArtistsPage(vm, artistsState, bottomPad, topPad, onPush)
+                    3 -> FoldersPage(vm, foldersState, bottomPad, topPad, onPush)
+                    else -> PlaylistsPage(vm, playlistsState, bottomPad, topPad, onPush)
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun GlassHeader(
+    title: String,
+    subtitle: String,
+    hazeState: HazeState,
+    onSearch: () -> Unit,
+    onSettings: () -> Unit,
+    modifier: Modifier
+) {
+    val shape = RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)
+    Column(
+        modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .hazeEffect(state = hazeState, style = BarHazeStyle)
+            .glassEdge(shape)
+    ) {
+        Header(title, subtitle, onSearch, onSettings)
     }
 }
 
@@ -284,7 +374,7 @@ private fun Header(title: String, subtitle: String, onSearch: (() -> Unit)?, onS
         Modifier
             .fillMaxWidth()
             .statusBarsPadding()
-            .padding(start = 24.dp, end = 16.dp, top = 16.dp, bottom = 10.dp),
+            .padding(start = 24.dp, end = 16.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
@@ -327,6 +417,7 @@ private fun TabBar(selected: Int, hazeState: HazeState, onSelect: (Int) -> Unit)
         FrostIcons.Folder,
         FrostIcons.QueueMusic
     )
+    val off = AccentTint.copy(alpha = 0f)
     Row(
         Modifier
             .fillMaxWidth()
@@ -339,11 +430,17 @@ private fun TabBar(selected: Int, hazeState: HazeState, onSelect: (Int) -> Unit)
     ) {
         TabLabels.forEachIndexed { index, label ->
             val active = index == selected
+            val tint by animateColorAsState(if (active) AccentTint else off, tween(220), label = "tabBg")
+            val iconScale by animateFloatAsState(
+                targetValue = if (active) 1.14f else 1f,
+                animationSpec = spring(dampingRatio = 0.45f, stiffness = 500f),
+                label = "tabIcon"
+            )
             Column(
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(18.dp))
-                    .background(if (active) AccentTint else Color.Transparent)
+                    .background(tint)
                     .clickable { onSelect(index) }
                     .padding(vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -352,7 +449,12 @@ private fun TabBar(selected: Int, hazeState: HazeState, onSelect: (Int) -> Unit)
                     icons[index],
                     contentDescription = label,
                     tint = if (active) Accent else InkMuted,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(24.dp)
+                        .graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
+                        }
                 )
                 Text(
                     label,
@@ -414,12 +516,14 @@ private fun MiniPlayer(vm: FrostViewModel, hazeState: HazeState, padNav: Boolean
                 .clickable { vm.togglePlay() },
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                if (vm.isPlaying) FrostIcons.Pause else FrostIcons.Play,
-                contentDescription = if (vm.isPlaying) "Pause" else "Play",
-                tint = Color.White,
-                modifier = Modifier.size(24.dp)
-            )
+            Crossfade(targetState = vm.isPlaying, animationSpec = tween(160), label = "miniplay") { playing ->
+                Icon(
+                    if (playing) FrostIcons.Pause else FrostIcons.Play,
+                    contentDescription = if (playing) "Pause" else "Play",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
         IconButton(onClick = { vm.next() }) {
             Icon(FrostIcons.SkipNext, contentDescription = "Next song", tint = Ink)

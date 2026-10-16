@@ -59,14 +59,14 @@ import com.joebuildsthings.frost.ui.theme.InkMuted
 import com.joebuildsthings.frost.ui.theme.glassFlat
 
 @Composable
-fun FoldersPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, onOpen: (Overlay) -> Unit) {
+fun FoldersPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, topPad: Dp, onOpen: (Overlay) -> Unit) {
     val folders = vm.folders
     if (folders.isEmpty()) {
         EmptyNote("No folders yet", "Folders appear once Frost finds songs on this phone.")
     } else {
         LazyColumn(
             state = state,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = bottomPad),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPad, bottom = bottomPad),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(folders, key = { it.path }) { folder ->

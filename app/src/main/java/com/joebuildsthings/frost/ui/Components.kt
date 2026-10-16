@@ -1,7 +1,14 @@
 package com.joebuildsthings.frost.ui
 
 import android.graphics.Bitmap
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -134,13 +141,15 @@ fun IconCircle(
     active: Boolean = false,
     size: Dp = 44.dp
 ) {
+    val source = remember { MutableInteractionSource() }
     Box(
         modifier
+            .pressScale(source)
             .size(size)
             .clip(CircleShape)
             .background(if (active) Accent else GlassFlat)
             .border(1.dp, if (active) Accent else GlassEdgeFade, CircleShape)
-            .clickable(onClick = onClick),
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Icon(
@@ -154,11 +163,13 @@ fun IconCircle(
 
 @Composable
 fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+    val source = remember { MutableInteractionSource() }
     Row(
         modifier
+            .pressScale(source)
             .clip(RoundedCornerShape(16.dp))
             .background(Accent)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -173,10 +184,12 @@ fun PrimaryButton(label: String, onClick: () -> Unit, modifier: Modifier = Modif
 
 @Composable
 fun GhostButton(label: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null) {
+    val source = remember { MutableInteractionSource() }
     Row(
         modifier
+            .pressScale(source)
             .glassFlat(RoundedCornerShape(16.dp))
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
             .padding(horizontal = 22.dp, vertical = 14.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
@@ -506,11 +519,13 @@ fun TrackMenu(track: Track, vm: FrostViewModel, onDismiss: () -> Unit, playlistI
 
 @Composable
 fun Chip(label: String, selected: Boolean, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
     Box(
         Modifier
+            .pressScale(source)
             .clip(RoundedCornerShape(50))
             .background(if (selected) Accent else AccentTint)
-            .clickable(onClick = onClick)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 9.dp)
     ) {
         Text(
@@ -551,5 +566,19 @@ fun ArtBackdrop(albumId: Long, requestPx: Int, modifier: Modifier) {
             contentScale = ContentScale.Crop,
             modifier = modifier
         )
+    }
+}
+
+@Composable
+fun Modifier.pressScale(source: InteractionSource, pressedScale: Float = 0.93f): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (pressed) pressedScale else 1f,
+        animationSpec = spring(dampingRatio = 0.5f, stiffness = 600f),
+        label = "press"
+    )
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
     }
 }

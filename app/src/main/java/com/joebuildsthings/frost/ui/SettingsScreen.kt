@@ -204,7 +204,7 @@ fun SettingsScreen(vm: FrostViewModel, bottomPad: Dp, onBack: () -> Unit) {
             }
             item(key = "about") {
                 SettingsCard("About") {
-                    Text("Frost $version", color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+                    Text("Frost Music Player $version", color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Medium)
                     Text(
                         "Frost plays songs stored on this phone. It has no internet permission, and your favorites and playlists stay on this device.",
                         color = InkMuted,

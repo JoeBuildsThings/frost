@@ -59,7 +59,7 @@ import com.joebuildsthings.frost.ui.theme.InkMuted
 import com.joebuildsthings.frost.ui.theme.glassFlat
 
 @Composable
-fun AlbumsPage(vm: FrostViewModel, state: LazyGridState, bottomPad: Dp, onOpen: (Overlay) -> Unit) {
+fun AlbumsPage(vm: FrostViewModel, state: LazyGridState, bottomPad: Dp, topPad: Dp, onOpen: (Overlay) -> Unit) {
     val albums = vm.albums
     if (albums.isEmpty()) {
         EmptyNote("No albums yet", "Albums appear once Frost finds songs on this phone.")
@@ -67,7 +67,7 @@ fun AlbumsPage(vm: FrostViewModel, state: LazyGridState, bottomPad: Dp, onOpen: 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             state = state,
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = bottomPad),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPad, bottom = bottomPad),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {

@@ -2,12 +2,12 @@ package com.joebuildsthings.frost.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val BgTop = Color(0xFFEFF5FF)
-val BgBottom = Color(0xFFFCFAF6)
-val BlobBlue = Color(0xFFA9C9FF)
-val BlobMint = Color(0xFFA9E7D3)
-val BlobPeach = Color(0xFFFFCDAE)
-val BlobSky = Color(0xFFBFE4FF)
+val BgTop = Color(0xFFEAF2FF)
+val BgBottom = Color(0xFFFCF9F4)
+val BlobBlue = Color(0xFF8EB8FF)
+val BlobMint = Color(0xFF8FE3C8)
+val BlobPeach = Color(0xFFFFB98F)
+val BlobSky = Color(0xFFA5D8FF)
 
 val Ink = Color(0xFF0E1726)
 val InkMuted = Color(0xFF566376)

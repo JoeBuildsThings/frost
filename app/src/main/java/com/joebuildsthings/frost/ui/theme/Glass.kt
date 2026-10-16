@@ -22,7 +22,7 @@ import dev.chrisbanes.haze.HazeTint
 
 val BarHazeStyle = HazeStyle(
     backgroundColor = Color.White,
-    tints = listOf(HazeTint(Color.White.copy(alpha = 0.50f))),
+    tints = listOf(HazeTint(Color.White.copy(alpha = 0.46f))),
     blurRadius = 20.dp,
     noiseFactor = 0.02f,
     fallbackTint = HazeTint(Color.White.copy(alpha = 0.92f))
@@ -40,17 +40,25 @@ private val RimBrush = Brush.linearGradient(
     listOf(Color(0xFFFFFFFF), Color(0x33FFFFFF), Color(0x99FFFFFF))
 )
 
+private val SheenBrush = Brush.linearGradient(
+    0f to Color(0x59FFFFFF),
+    0.45f to Color(0x00FFFFFF),
+    1f to Color(0x24FFFFFF)
+)
+
 fun Modifier.glassEdge(shape: Shape): Modifier = this.border(1.dp, RimBrush, shape)
 
 fun Modifier.glass(shape: Shape = RoundedCornerShape(24.dp)): Modifier = this
     .shadow(14.dp, shape, ambientColor = GlassShadow, spotColor = GlassShadow)
     .clip(shape)
-    .background(Brush.verticalGradient(listOf(Color(0xCCFFFFFF), Color(0x80FFFFFF))))
+    .background(Brush.verticalGradient(listOf(Color(0xC2FFFFFF), Color(0x6BFFFFFF))))
+    .background(SheenBrush)
     .glassEdge(shape)
 
 fun Modifier.glassFlat(shape: Shape = RoundedCornerShape(20.dp)): Modifier = this
     .clip(shape)
-    .background(Brush.verticalGradient(listOf(Color(0xBFFFFFFF), Color(0x80FFFFFF))))
+    .background(Brush.verticalGradient(listOf(Color(0xB3FFFFFF), Color(0x59FFFFFF))))
+    .background(SheenBrush)
     .glassEdge(shape)
 
 private fun DrawScope.blob(color: Color, cx: Float, cy: Float, r: Float) {
@@ -72,9 +80,9 @@ fun Modifier.dynamicGlow(colors: List<Color>?): Modifier {
     return this
         .background(Brush.verticalGradient(listOf(BgTop, BgBottom)))
         .drawBehind {
-            blob(c0, size.width * 0.10f, size.height * 0.08f, size.width * 0.90f)
-            blob(c1, size.width * 0.98f, size.height * 0.42f, size.width * 0.75f)
-            blob(c2, size.width * 0.15f, size.height * 0.70f, size.width * 0.80f)
-            blob(c3, size.width * 0.90f, size.height * 0.96f, size.width * 0.75f)
+            blob(c0, size.width * 0.10f, size.height * 0.08f, size.width * 0.95f)
+            blob(c1, size.width * 0.98f, size.height * 0.42f, size.width * 0.80f)
+            blob(c2, size.width * 0.15f, size.height * 0.70f, size.width * 0.85f)
+            blob(c3, size.width * 0.90f, size.height * 0.96f, size.width * 0.80f)
         }
 }

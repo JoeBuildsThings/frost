@@ -59,14 +59,14 @@ import com.joebuildsthings.frost.ui.theme.InkMuted
 import com.joebuildsthings.frost.ui.theme.glassFlat
 
 @Composable
-fun PlaylistsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, onOpen: (Overlay) -> Unit) {
+fun PlaylistsPage(vm: FrostViewModel, state: LazyListState, bottomPad: Dp, topPad: Dp, onOpen: (Overlay) -> Unit) {
     var creating by remember { mutableStateOf(false) }
     var menuFor by remember { mutableStateOf<Playlist?>(null) }
     var renaming by remember { mutableStateOf<Playlist?>(null) }
 
     LazyColumn(
         state = state,
-        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 4.dp, bottom = bottomPad),
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = topPad, bottom = bottomPad),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         item(key = "favorites") {

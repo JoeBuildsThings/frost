@@ -29,8 +29,8 @@ object ArtPalette {
     private fun soften(argb: Int): Color {
         val hsv = FloatArray(3)
         android.graphics.Color.colorToHSV(argb, hsv)
-        hsv[1] = hsv[1].coerceIn(0.18f, 0.55f)
-        hsv[2] = hsv[2].coerceAtLeast(0.88f)
+        hsv[1] = hsv[1].coerceIn(0.30f, 0.70f)
+        hsv[2] = hsv[2].coerceAtLeast(0.92f)
         return Color(android.graphics.Color.HSVToColor(hsv))
     }
 }
